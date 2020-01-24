@@ -20,7 +20,7 @@ from bs4 import BeautifulSoup
 from netaddr import IPNetwork
 
 
-def get_asn_number(orgname, companyDir):
+def get_asn_number():
     #run amass to get the ASN numbers of an organization
     print("Retriving ASN nmbers of the organizaiotn "+orgname)
     command = 'amass intel -org '+orgname
@@ -28,26 +28,13 @@ def get_asn_number(orgname, companyDir):
     stderr_read = asnList.stderr.read().decode('utf-8')
     asnList = asnList.stdout.read().decode('utf-8').splitlines()
     asnResults = companyDir+"/"+orgname+"_asns.txt"
-    cidrResults = companyDir+"/"+orgname+"_cidr.txt"
-
     with open(asnResults, 'w') as f:
         for asn in asnList:
             f.write("%s\n" % asn)
             asnNumber = (asn.split(","))[0]
             print("Processing ASN "+asnNumber)
             asn_convert = get_cidr(asnNumber)
-    
-    with open(cidrResults, 'w') as f:
-        for cidr in asn_convert:
-            print("cidrr is {}".format(cidr))
-            f.write("%s\n" % cidr)
-            
-            
-    print("CIDR found: ==> " + str(asn_convert))
-    
-        
-    print("asn found: ==> " + str(asnList))
-    
+                
         
 def get_cidr(asn):
     # use ASN listings to enumerate whois information for scanning.
@@ -56,6 +43,8 @@ def get_cidr(asn):
     asn_convert = subprocess.Popen([command], shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     stderr_read = asn_convert.stderr.read().decode('utf-8')
     asn_convert = asn_convert.stdout.read().decode('utf-8').splitlines()
+    cidrResults = companyDir+"/"+orgname+"_cidr.txt"
+
 
     # if we don't have whois installed
     if "whois: not found" in stderr_read:
@@ -64,23 +53,30 @@ def get_cidr(asn):
     # iterate through cidr ranges and append them to list to be scanned 
     
     print("CIDR found: ==> " + str(asn_convert))
+    with open(cidrResults, 'w') as f:
+        for cidr in asn_convert:
+            print("CIDR is {}".format(cidr))
+            f.write("%s\n" % cidr)
     
     return(asn_convert)
 
-def main(orgname):
+def main(org):
+    global orgname, resultsDir, companyDir
+    
+    orgname = sys.argv[1]
     resultsDir = str(os.getcwd())+"/results"
+    companyDir = resultsDir+"/"+orgname
     
     if not os.path.exists(resultsDir):
         os.makedirs(resultsDir)
-        
-    companyDir = resultsDir+"/"+orgname
     
     if not os.path.exists(companyDir):
         os.makedirs(companyDir)
         
     print("starting with the retrival of the ASN numbers for "+orgname)
-    get_asn_number(orgname, companyDir)
+    get_asn_number()
     
     
 if __name__ == "__main__":
-       main(sys.argv[1])
+
+    main(sys.argv[1])
